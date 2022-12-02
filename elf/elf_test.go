@@ -9,36 +9,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-func TestMaxCalories(t *testing.T) {
-	t.Parallel()
-	data := strings.NewReader(`1000
-2000
-3000
-
-4000
-
-5000
-6000
-
-7000
-8000
-9000
-
-10000
-`)
-	want := 24000
-	got, err := elf.MaxCalories(data)
-
-	if err != nil {
-		t.Fatalf("got unexpected error: %s", err)
-	}
-
-	if want != got {
-		t.Errorf("want %d, got %d", want, got)
-	}
-}
-
-func TestTopCaloryCarriers(t *testing.T) {
+func TestTopCaloryCounts(t *testing.T) {
 	t.Parallel()
 	data := strings.NewReader(`1000
 2000
@@ -56,7 +27,7 @@ func TestTopCaloryCarriers(t *testing.T) {
 10000
 `)
 	want := []int{24000, 11000, 10000}
-	got, err := elf.TopCaloryCarriers(data)
+	got, err := elf.TopCaloryCounts(data)
 
 	if err != nil {
 		t.Fatalf("got unexpected error: %s", err)

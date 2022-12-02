@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io"
 	"log"
 	"os"
 
@@ -15,20 +14,14 @@ func main() {
 		log.Fatal(err)
 	}
 	defer f.Close()
-
-	maxNumCalories, err := elf.MaxCalories(f)
+	topCounts, err := elf.TopCaloryCounts(f)
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("The greatest number of calories carried by a single elf is %d\n", maxNumCalories)
+	fmt.Printf("The greatest number of calories carried by a single elf is %d\n", topCounts[0])
 
-	f.Seek(0, io.SeekStart)
-	top, err := elf.TopCaloryCarriers(f)
-	if err != nil {
-		log.Fatal(err)
-	}
 	sum := 0
-	for _, v := range top {
+	for _, v := range topCounts {
 		sum += v
 	}
 	fmt.Printf("The total number of calories from the top 3 elf carriers is %d\n", sum)
