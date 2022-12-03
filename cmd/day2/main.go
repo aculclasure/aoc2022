@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"os"
 
@@ -20,4 +21,11 @@ func main() {
 		log.Fatal(err)
 	}
 	fmt.Printf("Following the strategy guide results in a score of %d\n", score)
+
+	f.Seek(0, io.SeekStart)
+	score, err = rps.ComputeCheatStrategyScore(f)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("Following the cheating strategy guide results in a score of %d\n", score)
 }

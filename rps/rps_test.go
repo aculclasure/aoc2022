@@ -119,3 +119,20 @@ C Z
 		t.Errorf("want %d, got %d", want, got)
 	}
 }
+
+func TestComputeCheatStrategyScore(t *testing.T) {
+	t.Parallel()
+	data := strings.NewReader(`A Y
+B X
+C Z
+`)
+	want := 12
+	got, err := rps.ComputeCheatStrategyScore(data)
+	if err != nil {
+		t.Fatal("got an unexpected error: ", err)
+	}
+
+	if want != got {
+		t.Errorf("want %d, got %d", want, got)
+	}
+}
