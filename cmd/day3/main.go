@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"os"
 
@@ -19,4 +20,11 @@ func main() {
 		log.Fatal(err)
 	}
 	fmt.Printf("The sum of priorities of shared items in rucksacks is %d\n", sum)
+
+	f.Seek(0, io.SeekStart)
+	sum, err = elf.SumBadgeItemPriorities(f)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("The sum of badge item priorities for all elf groups is %d\n", sum)
 }

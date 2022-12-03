@@ -18,10 +18,6 @@ func TestFindDuplicateRucksackItems(t *testing.T) {
 			input: "vJrwpWtwJgWrhcsFMMfFFhFp",
 			want:  []rune{'p'},
 		},
-		"Input with multiple duplicates returns expected duplicates": {
-			input: "CrZsZJsPPZsGzwwsLwLmpwMDwZ",
-			want:  []rune{'Z', 's'},
-		},
 		"Input of length 2 with duplicates returns expected duplicate": {
 			input: "JJ",
 			want:  []rune{'J'},
@@ -53,6 +49,42 @@ CrZsJsPPZsGzwwsLwLmpwMDw
 `)
 	want := 157
 	got, err := elf.SumDuplicateRucksackItemPriorities(input)
+	if err != nil {
+		t.Fatal("got unexpected error: ", err)
+	}
+	if want != got {
+		t.Errorf("want %d, got %d", want, got)
+	}
+}
+
+func TestFindBadgeInGroup(t *testing.T) {
+	t.Parallel()
+	input := [][]rune{
+		[]rune("wMqvLMZHhHMvwLHjbvcjnnSBnvTQFn"),
+		[]rune("ttgJtRGJQctTZtZT"),
+		[]rune("CrZsJsPPZsGzwwsLwLmpwMDw"),
+	}
+	want := 'Z'
+	got, err := elf.FindBadgeInGroup(input)
+	if err != nil {
+		t.Fatal("got unexpected error: ", err)
+	}
+	if want != got {
+		t.Errorf("want %s, got %s", string(want), string(got))
+	}
+}
+
+func TestSumBadgeItemPriorities(t *testing.T) {
+	t.Parallel()
+	input := strings.NewReader(`vJrwpWtwJgWrhcsFMMfFFhFp
+jqHRNqRjqzjGDLGLrsFMfFZSrLrFZsSL
+PmmdzqPrVvPwwTWBwg
+wMqvLMZHhHMvwLHjbvcjnnSBnvTQFn
+ttgJtRGJQctTZtZT
+CrZsJsPPZsGzwwsLwLmpwMDw
+`)
+	want := 70
+	got, err := elf.SumBadgeItemPriorities(input)
 	if err != nil {
 		t.Fatal("got unexpected error: ", err)
 	}

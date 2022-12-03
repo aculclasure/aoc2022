@@ -60,6 +60,77 @@ func SumDuplicateRucksackItemPriorities(data io.Reader) (int, error) {
 	return sum, nil
 }
 
+func FindBadgeInGroup(group [][]rune) (rune, error) {
+	if len(group) < 2 {
+		return '0', fmt.Errorf("group size must be at least 2 (got %d)", len(group))
+	}
+
+	type set map[rune]struct{}
+	var sets []set
+	for _, grp := range group {
+		itemSet := set{}
+		for _, item := range grp {
+			itemSet[item] = struct{}{}
+		}
+		sets = append(sets, itemSet)
+	}
+
+	firstSet := sets[0]
+	isBadgeItem := false
+	for item := range firstSet {
+		for _, nextSet := range sets[1:] {
+			if _, ok := nextSet[item]; !ok {
+				isBadgeItem = false
+				break
+			}
+			isBadgeItem = true
+		}
+		if isBadgeItem {
+			return item, nil
+		}
+	}
+
+	return '0', errors.New("unable to locate a badge item type in the given group")
+}
+
+func SumBadgeItemPriorities(data io.Reader) (int, error) {
+	if data == nil {
+		return 0, errors.New("data argument must be non-nil")
+	}
+
+	const groupSize = 3
+	var (
+		group        [][]rune
+		numLinesRead int
+		sum          int
+		scn          = bufio.NewScanner(data)
+		priorities   = rucksackItemPriorities()
+	)
+	for scn.Scan() {
+		ruckSackItems := []rune(scn.Text())
+		group = append(group, ruckSackItems)
+		numLinesRead++
+		if numLinesRead%groupSize == 0 {
+			badge, err := FindBadgeInGroup(group)
+			if err != nil {
+				return 0, err
+			}
+			badgeVal, ok := priorities[badge]
+			if !ok {
+				return 0, fmt.Errorf("badge item %s must have an assigned priority value", string(badge))
+			}
+			sum += badgeVal
+			group = [][]rune{}
+		}
+	}
+	err := scn.Err()
+	if err != nil {
+		return 0, err
+	}
+
+	return sum, nil
+}
+
 func rucksackItemPriorities() map[rune]int {
 	lowerCaseItems := []rune("abcdefghijklmnopqrstuvwxyz")
 	upperCaseItems := []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
