@@ -30,6 +30,17 @@ func FullOverlapExists(pair CleaningPair) bool {
 	}
 }
 
+func OverlapExists(pair CleaningPair) bool {
+	switch {
+	case pair.First.StartSector <= pair.Second.StartSector && pair.First.EndSector >= pair.Second.StartSector:
+		return true
+	case pair.Second.StartSector <= pair.First.StartSector && pair.Second.EndSector >= pair.First.StartSector:
+		return true
+	default:
+		return false
+	}
+}
+
 func PairFromInputLine(input string) (CleaningPair, error) {
 	assignmentFields := strings.Split(input, ",")
 	if len(assignmentFields) != 2 {
@@ -79,4 +90,29 @@ func GetFullyOverlappingPairs(schedules io.Reader) ([]CleaningPair, error) {
 	}
 
 	return fullyOverlapping, nil
+}
+
+func GetOverlappingPairs(schedules io.Reader) ([]CleaningPair, error) {
+	if schedules == nil {
+		return nil, errors.New("schedules must be a non-nil argument")
+	}
+
+	var overlapping []CleaningPair
+	sc := bufio.NewScanner(schedules)
+	for sc.Scan() {
+		pair, err := PairFromInputLine(sc.Text())
+		if err != nil {
+			return nil, err
+		}
+
+		if OverlapExists(pair) {
+			overlapping = append(overlapping, pair)
+		}
+	}
+	err := sc.Err()
+	if err != nil {
+		return nil, err
+	}
+
+	return overlapping, nil
 }
