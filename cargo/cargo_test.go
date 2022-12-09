@@ -303,6 +303,33 @@ func TestLayout_MoveWithValidMovementUpdatesLayout(t *testing.T) {
 	}
 }
 
+func TestLayout_MoveWithCrateMover9001GivenValidMovementUpdatesLayout(t *testing.T) {
+	t.Parallel()
+	layout := &cargo.Layout{
+		Stacks: []*cargo.Stack{
+			nil,
+			cargo.NewStack('a', 'b', 'c'),
+			cargo.NewStack('d', 'e', 'f'),
+		},
+	}
+	mv := cargo.Movement{SrcStack: 1, DestStack: 2, Quantity: 2}
+
+	layout.MoveWithCrateMover9001(mv)
+	wantDestStackItems := []rune{'d', 'e', 'f', 'b', 'c'}
+	gotDestStackItems := layout.Stacks[mv.DestStack].Items()
+	if !cmp.Equal(wantDestStackItems, gotDestStackItems) {
+		t.Log("destination stack did not get updated as expected")
+		t.Fatal(cmp.Diff(wantDestStackItems, gotDestStackItems))
+	}
+
+	wantSrcStackItems := []rune{'a'}
+	gotSrcStackItems := layout.Stacks[mv.SrcStack].Items()
+	if !cmp.Equal(wantSrcStackItems, gotSrcStackItems) {
+		t.Log("source stack did not get updated as expected")
+		t.Fatal(cmp.Diff(wantSrcStackItems, gotSrcStackItems))
+	}
+}
+
 func TestLayout_GetTopItems(t *testing.T) {
 	t.Parallel()
 	testCases := map[string]struct {

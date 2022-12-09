@@ -86,6 +86,35 @@ func (l *Layout) Move(mv Movement) error {
 	return nil
 }
 
+func (l *Layout) MoveWithCrateMover9001(mv Movement) error {
+	switch {
+	case mv.SrcStack < 1 || mv.SrcStack >= len(l.Stacks):
+		return fmt.Errorf("the source stack in the movement must be between 1 and %d inclusive (got %d)", len(l.Stacks)-1, mv.SrcStack)
+	case mv.DestStack < 1 || mv.DestStack >= len(l.Stacks):
+		return fmt.Errorf("the destination stack in the movement must be between 1 and %d inclusive (got %d)", len(l.Stacks)-1, mv.DestStack)
+	case mv.Quantity < 0:
+		return fmt.Errorf("quantity to move must be 0 or greater (got %d)", mv.Quantity)
+	case mv.Quantity > l.Stacks[mv.SrcStack].Size():
+		return fmt.Errorf("quantity to move (%d) must not be greater than size of source stack (%d)", mv.Quantity, l.Stacks[mv.SrcStack].Size())
+	}
+	poppedItems := make([]rune, mv.Quantity)
+	for i := 0; i < mv.Quantity; i++ {
+		item, ok := l.Stacks[mv.SrcStack].Pop()
+		if !ok {
+			return fmt.Errorf("src stack %d must contain at least %d items (got %d)", mv.SrcStack, mv.Quantity, i)
+		}
+		poppedItems[i] = item
+	}
+	for i := range poppedItems {
+		if mv.Quantity > 1 {
+			l.Stacks[mv.DestStack].Push(poppedItems[len(poppedItems)-1-i])
+			continue
+		}
+		l.Stacks[mv.DestStack].Push(poppedItems[i])
+	}
+	return nil
+}
+
 func (l *Layout) InitializeFromCrateRows(crates [][]Crate) error {
 	for i := len(crates) - 1; i >= 0; i-- {
 		row := crates[i]
@@ -211,7 +240,7 @@ func LayoutFromData(data io.Reader) (*Layout, error) {
 			if err != nil {
 				return nil, fmt.Errorf("got error creating movement from line %s: %s", line, err)
 			}
-			err = layout.Move(mv)
+			err = layout.MoveWithCrateMover9001(mv)
 			if err != nil {
 				return nil, fmt.Errorf("got error applying movement to layout: %s", err)
 			}
