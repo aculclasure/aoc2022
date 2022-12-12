@@ -1,4 +1,7 @@
-package comms
+// Package devices implements functions related to devices carried by the
+// elves. The HasUniqueChars, StartPacketMarker, and StartMessageMarker
+// functions are related to the communications device carried by the elves.
+package devices
 
 import (
 	"errors"

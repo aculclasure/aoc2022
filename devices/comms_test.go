@@ -1,15 +1,15 @@
-package comms_test
+package devices_test
 
 import (
 	"testing"
 
-	"github.com/aculclasure/aoc2022/comms"
+	"github.com/aculclasure/aoc2022/devices"
 )
 
 func TestHasUniqueCharsWithEmptyInputReturnsError(t *testing.T) {
 	t.Parallel()
 	input := []rune("")
-	_, err := comms.HasUniqueChars(input)
+	_, err := devices.HasUniqueChars(input)
 	if err == nil {
 		t.Fatal("expected an error but did not get one")
 	}
@@ -36,7 +36,7 @@ func TestHasUniqueChars(t *testing.T) {
 	}
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
-			got, err := comms.HasUniqueChars(tc.input)
+			got, err := devices.HasUniqueChars(tc.input)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -84,7 +84,7 @@ func TestStartPacketMarker(t *testing.T) {
 	}
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
-			got := comms.StartPacketMarker(tc.input)
+			got := devices.StartPacketMarker(tc.input)
 			if tc.want != got {
 				t.Errorf("want %d, got %d", tc.want, got)
 			}
@@ -125,7 +125,7 @@ func TestStartMessageMarker(t *testing.T) {
 	}
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
-			got := comms.StartMessageMarker(tc.input)
+			got := devices.StartMessageMarker(tc.input)
 			if tc.want != got {
 				t.Errorf("want %d, got %d", tc.want, got)
 			}

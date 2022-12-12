@@ -7,7 +7,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/aculclasure/aoc2022/comms"
+	"github.com/aculclasure/aoc2022/devices"
 )
 
 func main() {
@@ -25,7 +25,7 @@ func main() {
 	if err := scn.Err(); err != nil {
 		log.Fatal(err)
 	}
-	marker := comms.StartPacketMarker(data)
+	marker := devices.StartPacketMarker(data)
 	fmt.Printf("The start of packet marker index is %d\n", marker)
 
 	f.Seek(0, io.SeekStart)
@@ -36,6 +36,6 @@ func main() {
 	if err := scn.Err(); err != nil {
 		log.Fatal(err)
 	}
-	marker = comms.StartMessageMarker(data)
+	marker = devices.StartMessageMarker(data)
 	fmt.Printf("The start of message marker index is %d\n", marker)
 }
