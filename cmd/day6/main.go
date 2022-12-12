@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"log"
 	"os"
 
@@ -25,5 +26,16 @@ func main() {
 		log.Fatal(err)
 	}
 	marker := comms.StartPacketMarker(data)
-	fmt.Printf("The start of marker index is %d\n", marker)
+	fmt.Printf("The start of packet marker index is %d\n", marker)
+
+	f.Seek(0, io.SeekStart)
+	scn = bufio.NewScanner(f)
+	for scn.Scan() {
+		data = scn.Text()
+	}
+	if err := scn.Err(); err != nil {
+		log.Fatal(err)
+	}
+	marker = comms.StartMessageMarker(data)
+	fmt.Printf("The start of message marker index is %d\n", marker)
 }

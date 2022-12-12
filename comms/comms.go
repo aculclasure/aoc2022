@@ -29,13 +29,24 @@ func HasUniqueChars(input []rune) (bool, error) {
 // start of marker packet position. A negative value is returned if no start of
 // marker packet can be found in the input.
 func StartPacketMarker(input string) int {
-	const minNumUniqueChars int = 4
+	return startMarker(input, 4)
+}
+
+// StartMessageMarker accepts a string representing a data stream in the elf's
+// communications device and returns a number indicating the index of the first
+// start of message marker position. A negative value is returned if no start of
+// message packet can be found in the input.
+func StartMessageMarker(input string) int {
+	return startMarker(input, 14)
+}
+
+func startMarker(input string, chunkLength int) int {
 	runes := []rune(input)
-	if len(runes) < minNumUniqueChars {
+	if len(runes) < chunkLength {
 		return -1
 	}
-	for i := minNumUniqueChars; i <= len(runes); i++ {
-		chunk := runes[i-minNumUniqueChars : i]
+	for i := chunkLength; i <= len(runes); i++ {
+		chunk := runes[i-chunkLength : i]
 		unique, err := HasUniqueChars(chunk)
 		switch {
 		case err != nil:

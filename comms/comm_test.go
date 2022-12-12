@@ -73,7 +73,7 @@ func TestStartPacketMarker(t *testing.T) {
 			input: "abc",
 			want:  -1,
 		},
-		"Input with length greater than 4 and marker at end of input returns expected index": {
+		"Input with length greater than 4 and valid marker at end of input returns expected index": {
 			input: "zcfzfwzzqfr",
 			want:  11,
 		},
@@ -85,6 +85,47 @@ func TestStartPacketMarker(t *testing.T) {
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
 			got := comms.StartPacketMarker(tc.input)
+			if tc.want != got {
+				t.Errorf("want %d, got %d", tc.want, got)
+			}
+		})
+	}
+}
+
+func TestStartMessageMarker(t *testing.T) {
+	t.Parallel()
+	testCases := map[string]struct {
+		input string
+		want  int
+	}{
+		"Input of length 14 with all unique characters returns 14": {
+			input: "abcdefghijklmn",
+			want:  14,
+		},
+		"Input of length 14 with non-unique characters returns -1": {
+			input: "aaaaaaabbbbbbb",
+			want:  -1,
+		},
+		"Input with marker at position 19 returns 19": {
+			input: "mjqjpqmgbljsphdztnvjfqwrcgsmlb",
+			want:  19,
+		},
+		"Input that is too small returns -1": {
+			input: "abcdefghijk",
+			want:  -1,
+		},
+		"Input with length greater than 14 and valid marker at end of input returns expected index": {
+			input: "aaaaaaaaaaaaaaaaaaaaaabcdefghijklmn",
+			want:  35,
+		},
+		"Input with length greater than 14 and no unique characters returns -1": {
+			input: "aabbccddeeffgghhiijjkkllmmnnoopp",
+			want:  -1,
+		},
+	}
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			got := comms.StartMessageMarker(tc.input)
 			if tc.want != got {
 				t.Errorf("want %d, got %d", tc.want, got)
 			}
