@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -22,6 +23,7 @@ type Directory struct {
 	Name     string
 	Files    []File
 	Children map[string]*Directory
+	Parent   *Directory
 }
 
 // File represents a file in the filesystem of the elf's device.
@@ -57,8 +59,55 @@ func (d *Directory) AddSubdir(subdir *Directory) {
 
 	_, ok := d.Children[subdir.Name]
 	if !ok {
+		subdir.Parent = d
 		d.Children[subdir.Name] = subdir
 	}
+}
+
+// AllDescendantLeaves returns a slice of all descendants from the current
+// directory that are leaves (i.e. directories that have no children.) A nil
+// slice is returned if the current directory is nil or if the current directory
+// has no descendant leaves.
+func (d *Directory) AllDescendantLeaves() []*Directory {
+	if d == nil {
+		return nil
+	}
+	var leaves []*Directory
+	desc := AllDescendants(d)
+	for _, d := range desc {
+		if len(d.Children) == 0 {
+			leaves = append(leaves, d)
+		}
+	}
+	return leaves
+}
+
+// BestDirectoryToCleanup returns the smallest directory that could be removed
+// in order to provide the minimum needed disk space for running a system update.
+// Nil is returned if the current directory is nil or no descendant directory
+// meeting the cleanup criteria can be found.
+func (d *Directory) BestDirectoryToCleanup(minSystemFreeSpace int) *Directory {
+	if d == nil {
+		return nil
+	}
+	const totalAvailableSystemSpace = 70000000
+	currentUsedSpace := d.TotalSize()
+	allDirs := []*Directory{d}
+	allDirs = append(allDirs, AllDescendants(d)...)
+	var potential []*Directory
+	for _, dir := range allDirs {
+		freedSpace := (totalAvailableSystemSpace - currentUsedSpace) + dir.TotalSize()
+		if freedSpace >= minSystemFreeSpace {
+			potential = append(potential, dir)
+		}
+	}
+	sort.Slice(potential, func(i, j int) bool {
+		return potential[i].TotalSize() < potential[j].TotalSize()
+	})
+	if len(potential) == 0 {
+		return nil
+	}
+	return potential[0]
 }
 
 // TreeFromTerminalOutput accepts an io.Reader that points to output captured
@@ -101,12 +150,14 @@ func TreeFromTerminalOutput(terminal io.Reader) (*Directory, error) {
 				continue
 			}
 			if cwd.Children == nil {
+				dir.Parent = cwd
 				cwd.Children = map[string]*Directory{dir.Name: dir}
 				stk.Push(dir)
 				continue
 			}
 			d, ok := cwd.Children[dir.Name]
 			if !ok {
+				dir.Parent = cwd
 				cwd.Children[dir.Name] = dir
 				stk.Push(dir)
 				continue
@@ -134,11 +185,13 @@ func TreeFromTerminalOutput(terminal io.Reader) (*Directory, error) {
 				continue
 			}
 			if cwd.Children == nil {
+				dir.Parent = cwd
 				cwd.Children = map[string]*Directory{dir.Name: dir}
 				continue
 			}
 			_, ok = cwd.Children[dir.Name]
 			if !ok {
+				dir.Parent = cwd
 				cwd.Children[dir.Name] = dir
 			}
 		}

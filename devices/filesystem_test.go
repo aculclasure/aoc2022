@@ -9,6 +9,20 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
+// Provides custom comparing logic when comparing 2 Directory structs to each
+// other. For our test cases, it's sufficient to say 2 directories are equal
+// when they have the same name. When using this comparer, other fields in the
+// Directory struct are ignored.
+var compareByDirName = cmp.Comparer(func(d1, d2 *devices.Directory) bool {
+	if d1 == nil && d2 == nil {
+		return true
+	}
+	if d1 == nil || d2 == nil {
+		return false
+	}
+	return d1.Name == d2.Name
+})
+
 func TestDirectory_TotalSizeGivenNestedDirectoriesReturnsExpectedSum(t *testing.T) {
 	t.Parallel()
 	b := &devices.Directory{
@@ -67,6 +81,40 @@ func TestDirectory_AddSubdirGivenExistingSubdirDoesNotOverrideExistingSubdir(t *
 	}
 }
 
+func TestDirectory_AllDescendantLeaves(t *testing.T) {
+	t.Parallel()
+	rootDir := &devices.Directory{Name: "/"}
+	rootDir.AddSubdir(&devices.Directory{Name: "a"})
+	b := &devices.Directory{Name: "b"}
+	b.AddSubdir(&devices.Directory{Name: "c"})
+	rootDir.AddSubdir(b)
+	want := []*devices.Directory{
+		{Name: "a"},
+		{Name: "c"},
+	}
+	got := rootDir.AllDescendantLeaves()
+	if got == nil {
+		t.Fatalf("want %+v, got nil", want)
+	}
+	sort.Slice(got, func(i, j int) bool {
+		return got[i].Name < got[j].Name
+	})
+	if !cmp.Equal(want, got, compareByDirName) {
+		t.Error(cmp.Diff(want, got, compareByDirName))
+	}
+}
+
+func TestDirectory_BestDirectoryToCleanup(t *testing.T) {
+	t.Parallel()
+	rootDir := buildTreeFromExample()
+	want := &devices.Directory{Name: "d"}
+	const minSystemFreeSpace = 30000000
+	got := rootDir.BestDirectoryToCleanup(minSystemFreeSpace)
+	if !cmp.Equal(want, got, compareByDirName) {
+		t.Error(cmp.Diff(want, got, compareByDirName))
+	}
+}
+
 func TestAllDescendants(t *testing.T) {
 	t.Parallel()
 	rootDir := &devices.Directory{Name: "/"}
@@ -77,16 +125,6 @@ func TestAllDescendants(t *testing.T) {
 	grandChild := &devices.Directory{Name: "c"}
 	child1.AddSubdir(grandChild)
 	grandChild.AddSubdir(&devices.Directory{Name: "d"})
-
-	comparer := cmp.Comparer(func(d1, d2 *devices.Directory) bool {
-		if d1 == nil && d2 == nil {
-			return true
-		}
-		if d1 == nil || d2 == nil {
-			return false
-		}
-		return d1.Name == d2.Name
-	})
 
 	testCases := map[string]struct {
 		input *devices.Directory
@@ -120,8 +158,8 @@ func TestAllDescendants(t *testing.T) {
 			sort.Slice(got, func(i, j int) bool {
 				return got[i].Name < got[j].Name
 			})
-			if !cmp.Equal(tc.want, got, comparer) {
-				t.Error(cmp.Diff(tc.want, got, comparer))
+			if !cmp.Equal(tc.want, got, compareByDirName) {
+				t.Error(cmp.Diff(tc.want, got, compareByDirName))
 			}
 		})
 	}
@@ -129,48 +167,7 @@ func TestAllDescendants(t *testing.T) {
 
 func TestDirectoriesSmallerThan(t *testing.T) {
 	t.Parallel()
-	rootDir := &devices.Directory{
-		Name: "/",
-		Files: []devices.File{
-			{Name: "b.txt", Size: 14848514},
-			{Name: "c.dat", Size: 8504156},
-		}}
-	a := &devices.Directory{
-		Name: "a",
-		Files: []devices.File{
-			{Name: "f", Size: 29116},
-			{Name: "g", Size: 2557},
-		},
-	}
-	e := &devices.Directory{
-		Name: "e",
-		Files: []devices.File{
-			{Name: "i", Size: 584},
-		},
-	}
-	a.AddSubdir(e)
-	d := &devices.Directory{
-		Name: "d",
-		Files: []devices.File{
-			{Name: "j", Size: 4060174},
-			{Name: "d.log", Size: 8033020},
-			{Name: "d.ext", Size: 5626152},
-			{Name: "k", Size: 7214296},
-		},
-	}
-	rootDir.AddSubdir(a)
-	rootDir.AddSubdir(d)
-
-	comparer := cmp.Comparer(func(d1, d2 *devices.Directory) bool {
-		if d1 == nil && d2 == nil {
-			return true
-		}
-		if d1 == nil || d2 == nil {
-			return false
-		}
-		return d1.Name == d2.Name
-	})
-
+	rootDir := buildTreeFromExample()
 	want := []*devices.Directory{
 		{Name: "a"},
 		{Name: "e"},
@@ -179,10 +176,9 @@ func TestDirectoriesSmallerThan(t *testing.T) {
 	sort.Slice(got, func(i, j int) bool {
 		return got[i].Name < got[j].Name
 	})
-	if !cmp.Equal(want, got, comparer) {
-		t.Error(cmp.Diff(want, got, comparer))
+	if !cmp.Equal(want, got, compareByDirName) {
+		t.Error(cmp.Diff(want, got, compareByDirName))
 	}
-
 }
 
 func TestTreeFromTerminalOutput(t *testing.T) {
@@ -301,4 +297,41 @@ func TestFileFromLineErrorCases(t *testing.T) {
 			}
 		})
 	}
+}
+
+// buildTreeFromExample is a test helper that builds the directory tree provided
+// in the day 7 example. It returns the root directory of the tree.
+func buildTreeFromExample() *devices.Directory {
+	rootDir := &devices.Directory{
+		Name: "/",
+		Files: []devices.File{
+			{Name: "b.txt", Size: 14848514},
+			{Name: "c.dat", Size: 8504156},
+		}}
+	a := &devices.Directory{
+		Name: "a",
+		Files: []devices.File{
+			{Name: "f", Size: 29116},
+			{Name: "g", Size: 2557},
+		},
+	}
+	e := &devices.Directory{
+		Name: "e",
+		Files: []devices.File{
+			{Name: "i", Size: 584},
+		},
+	}
+	a.AddSubdir(e)
+	d := &devices.Directory{
+		Name: "d",
+		Files: []devices.File{
+			{Name: "j", Size: 4060174},
+			{Name: "d.log", Size: 8033020},
+			{Name: "d.ext", Size: 5626152},
+			{Name: "k", Size: 7214296},
+		},
+	}
+	rootDir.AddSubdir(a)
+	rootDir.AddSubdir(d)
+	return rootDir
 }

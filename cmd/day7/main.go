@@ -25,4 +25,11 @@ func main() {
 		sum += m.TotalSize()
 	}
 	fmt.Printf("Sum of total sizes of all directories smaller than %d is %d\n", maxTotalSizePerDirectory, sum)
+
+	const minSystemFreeSpace = 30000000
+	bestDirToRemove := rootDir.BestDirectoryToCleanup(minSystemFreeSpace)
+	if bestDirToRemove == nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("The best dir to cleanup (%s) has a total size of %d\n", bestDirToRemove.Name, bestDirToRemove.TotalSize())
 }
