@@ -81,26 +81,53 @@ func TestDirectory_AddSubdirGivenExistingSubdirDoesNotOverrideExistingSubdir(t *
 	}
 }
 
-func TestDirectory_AllDescendantLeaves(t *testing.T) {
+func TestDirectory_AllDescendants(t *testing.T) {
 	t.Parallel()
 	rootDir := &devices.Directory{Name: "/"}
-	rootDir.AddSubdir(&devices.Directory{Name: "a"})
-	b := &devices.Directory{Name: "b"}
-	b.AddSubdir(&devices.Directory{Name: "c"})
-	rootDir.AddSubdir(b)
-	want := []*devices.Directory{
-		{Name: "a"},
-		{Name: "c"},
+	child1 := &devices.Directory{Name: "a"}
+	child2 := &devices.Directory{Name: "b"}
+	rootDir.AddSubdir(child1)
+	rootDir.AddSubdir(child2)
+	grandChild := &devices.Directory{Name: "c"}
+	child1.AddSubdir(grandChild)
+	grandChild.AddSubdir(&devices.Directory{Name: "d"})
+
+	testCases := map[string]struct {
+		input *devices.Directory
+		want  []*devices.Directory
+	}{
+		"Nil root directory returns nil": {
+			input: nil,
+			want:  nil,
+		},
+		"Root directory with no children returns nil": {
+			input: child2,
+			want:  nil,
+		},
+		"Root directory with one descendant returns descendant": {
+			input: grandChild,
+			want:  []*devices.Directory{{Name: "d"}},
+		},
+		"Root directory with multiple generations of descendants returns expected descendants": {
+			input: rootDir,
+			want: []*devices.Directory{
+				{Name: "a"},
+				{Name: "b"},
+				{Name: "c"},
+				{Name: "d"},
+			},
+		},
 	}
-	got := rootDir.AllDescendantLeaves()
-	if got == nil {
-		t.Fatalf("want %+v, got nil", want)
-	}
-	sort.Slice(got, func(i, j int) bool {
-		return got[i].Name < got[j].Name
-	})
-	if !cmp.Equal(want, got, compareByDirName) {
-		t.Error(cmp.Diff(want, got, compareByDirName))
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			got := tc.input.AllDescendants()
+			sort.Slice(got, func(i, j int) bool {
+				return got[i].Name < got[j].Name
+			})
+			if !cmp.Equal(tc.want, got, compareByDirName) {
+				t.Error(cmp.Diff(tc.want, got, compareByDirName))
+			}
+		})
 	}
 }
 
@@ -154,7 +181,7 @@ func TestAllDescendants(t *testing.T) {
 	}
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
-			got := devices.AllDescendants(tc.input)
+			got := tc.input.AllDescendants()
 			sort.Slice(got, func(i, j int) bool {
 				return got[i].Name < got[j].Name
 			})

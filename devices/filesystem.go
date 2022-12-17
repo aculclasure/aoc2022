@@ -64,22 +64,29 @@ func (d *Directory) AddSubdir(subdir *Directory) {
 	}
 }
 
-// AllDescendantLeaves returns a slice of all descendants from the current
-// directory that are leaves (i.e. directories that have no children.) A nil
-// slice is returned if the current directory is nil or if the current directory
-// has no descendant leaves.
-func (d *Directory) AllDescendantLeaves() []*Directory {
+// AllDescendans returns a slice of all descendants of the current directory. A
+// nil slice is returned if the current directory has no descendants.
+func (d *Directory) AllDescendants() []*Directory {
 	if d == nil {
 		return nil
 	}
-	var leaves []*Directory
-	desc := AllDescendants(d)
-	for _, d := range desc {
-		if len(d.Children) == 0 {
-			leaves = append(leaves, d)
+
+	var (
+		stk         stack.Stack[*Directory]
+		descendants []*Directory
+	)
+	for _, v := range d.Children {
+		stk.Push(v)
+	}
+	for stk.Size() > 0 {
+		nextChild, _ := stk.Pop()
+		descendants = append(descendants, nextChild)
+		for _, v := range nextChild.Children {
+			stk.Push(v)
 		}
 	}
-	return leaves
+
+	return descendants
 }
 
 // BestDirectoryToCleanup returns the smallest directory that could be removed
@@ -93,7 +100,7 @@ func (d *Directory) BestDirectoryToCleanup(minSystemFreeSpace int) *Directory {
 	const totalAvailableSystemSpace = 70000000
 	currentUsedSpace := d.TotalSize()
 	allDirs := []*Directory{d}
-	allDirs = append(allDirs, AllDescendants(d)...)
+	allDirs = append(allDirs, d.AllDescendants()...)
 	var potential []*Directory
 	for _, dir := range allDirs {
 		freedSpace := (totalAvailableSystemSpace - currentUsedSpace) + dir.TotalSize()
@@ -205,32 +212,6 @@ func TreeFromTerminalOutput(terminal io.Reader) (*Directory, error) {
 	return rootDir, nil
 }
 
-// AllDescendats accepts a root directory and returns a slice of all its
-// descendant directories. A nil slice is returned if the root directory
-// has no descendants.
-func AllDescendants(root *Directory) []*Directory {
-	if root == nil {
-		return nil
-	}
-
-	var (
-		stk         stack.Stack[*Directory]
-		descendants []*Directory
-	)
-	for _, v := range root.Children {
-		stk.Push(v)
-	}
-	for stk.Size() > 0 {
-		nextChild, _ := stk.Pop()
-		descendants = append(descendants, nextChild)
-		for _, v := range nextChild.Children {
-			stk.Push(v)
-		}
-	}
-
-	return descendants
-}
-
 // DirectoriesSmallerThan accepts a root directory and an int representing
 // the maximum total size and returns a slice of all directories starting from
 // the root directory whose total size is no larger than the maximum total
@@ -252,7 +233,7 @@ func DirectoriesSmallerThan(root *Directory, maxTotalSize int) []*Directory {
 			continue
 		}
 		matches = append(matches, next)
-		desc := AllDescendants(next)
+		desc := next.AllDescendants()
 		matches = append(matches, desc...)
 	}
 	return matches
