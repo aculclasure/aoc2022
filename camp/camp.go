@@ -1,3 +1,4 @@
+// Package camp provides types and functions related to the elf camp.
 package camp
 
 import (
