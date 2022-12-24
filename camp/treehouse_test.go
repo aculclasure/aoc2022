@@ -38,6 +38,93 @@ func TestTreesFromBytesWithNilInputReturnsEmptySlice(t *testing.T) {
 	}
 }
 
+func TestMaxScenicScoreWithValidTreeGridReturnsExpectedScore(t *testing.T) {
+	t.Parallel()
+	want := 8
+	got, err := camp.MaxScenicScore(validTreeHeights)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want != got {
+		t.Errorf("want %d, got %d", want, got)
+	}
+}
+
+func TestMaxScenicScoreWithInvalidTreeGridReturnsError(t *testing.T) {
+	t.Parallel()
+	_, err := camp.MaxScenicScore(invalidTreeHeights)
+	if err == nil {
+		t.Error("expected an error but did not get one")
+	}
+}
+func TestScenicScore(t *testing.T) {
+	t.Parallel()
+	testCases := map[string]struct {
+		coordinate string
+		want       int
+	}{
+		"Valid non-edge coordinate returns expected score": {
+			coordinate: "3 2",
+			want:       8,
+		},
+		"A different valid non-edge coordinate returns expected score": {
+			coordinate: "1 2",
+			want:       4,
+		},
+		"Coordinate on column grid edge returns 0 score": {
+			coordinate: "1 0",
+			want:       0,
+		},
+		"Coordinate on row grid edge returns 0 score": {
+			coordinate: "0 1",
+			want:       0,
+		},
+	}
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			got, err := camp.ScenicScore(validTreeHeights, tc.coordinate)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if tc.want != got {
+				t.Errorf("want %d, got %d", tc.want, got)
+			}
+		})
+	}
+}
+func TestScenicScoreErrorCases(t *testing.T) {
+	t.Parallel()
+	testCases := map[string]struct {
+		trees      []string
+		coordinate string
+	}{
+		"Coordinate with invalid row number returns error": {
+			trees:      validTreeHeights,
+			coordinate: "-1 2",
+		},
+		"Coordinate with invalid column number returns error": {
+			trees:      validTreeHeights,
+			coordinate: "0 100",
+		},
+		"Coordinate with non-numerical coordinate values returns error": {
+			trees:      validTreeHeights,
+			coordinate: "a b",
+		},
+		"Trees input with non-numerical height value returns error": {
+			trees:      invalidTreeHeights,
+			coordinate: "1 1",
+		},
+	}
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			_, err := camp.ScenicScore(tc.trees, tc.coordinate)
+			if err == nil {
+				t.Error("expected an error but did not get one")
+			}
+		})
+	}
+}
+
 func TestAllVisibleTreesWithValidInputReturnsExpectedCoordinateSlice(t *testing.T) {
 	t.Parallel()
 	want := []string{

@@ -19,4 +19,9 @@ func main() {
 		log.Fatal(err)
 	}
 	fmt.Printf("The number of trees visible from outside the grid is %d\n", len(vis))
+	maxScenicScore, err := camp.MaxScenicScore(trees)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("The max scenic score for a tree in the grid is %d\n", maxScenicScore)
 }
