@@ -1,0 +1,2 @@
+Rope with 2 knots:  6384
+Rope with 10 knots: 2734

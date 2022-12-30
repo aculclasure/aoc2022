@@ -15,17 +15,17 @@ func TestRope_MoveHead(t *testing.T) {
 	}
 	testCases := map[string]struct {
 		input []move
-		want  *rope.Rope
+		want  []*rope.RopeEnd
 	}{
 		"Moving head end up a column moves head and tail ends as expected": {
 			input: []move{{numRows: 2}},
-			want: &rope.Rope{
-				Head: &rope.RopeEnd{
+			want: []*rope.RopeEnd{
+				{
 					Row:     2,
 					Col:     0,
 					Visited: map[string]int{"0,0": 1, "1,0": 1, "2,0": 1},
 				},
-				Tail: &rope.RopeEnd{
+				{
 					Row:     1,
 					Col:     0,
 					Visited: map[string]int{"0,0": 1, "1,0": 1},
@@ -34,13 +34,13 @@ func TestRope_MoveHead(t *testing.T) {
 		},
 		"Moving head across a row moves head and tail ends as expected": {
 			input: []move{{numCols: -2}},
-			want: &rope.Rope{
-				Head: &rope.RopeEnd{
+			want: []*rope.RopeEnd{
+				{
 					Row:     0,
 					Col:     -2,
 					Visited: map[string]int{"0,0": 1, "0,-1": 1, "0,-2": 1},
 				},
-				Tail: &rope.RopeEnd{
+				{
 					Row:     0,
 					Col:     -1,
 					Visited: map[string]int{"0,0": 1, "0,-1": 1},
@@ -49,13 +49,13 @@ func TestRope_MoveHead(t *testing.T) {
 		},
 		"Head revisiting positions updates head's map of visited positions as expected": {
 			input: []move{{numRows: 2}, {numRows: -1}},
-			want: &rope.Rope{
-				Head: &rope.RopeEnd{
+			want: []*rope.RopeEnd{
+				{
 					Row:     1,
 					Col:     0,
 					Visited: map[string]int{"0,0": 1, "1,0": 2, "2,0": 1},
 				},
-				Tail: &rope.RopeEnd{
+				{
 					Row:     1,
 					Col:     0,
 					Visited: map[string]int{"0,0": 1, "1,0": 1},
@@ -64,13 +64,13 @@ func TestRope_MoveHead(t *testing.T) {
 		},
 		"Head moving up column and across rows moves tail as expected": {
 			input: []move{{numRows: 1}, {numCols: 1}, {numCols: 1}},
-			want: &rope.Rope{
-				Head: &rope.RopeEnd{
+			want: []*rope.RopeEnd{
+				{
 					Row:     1,
 					Col:     2,
 					Visited: map[string]int{"0,0": 1, "1,0": 1, "1,1": 1, "1,2": 1},
 				},
-				Tail: &rope.RopeEnd{
+				{
 					Row:     1,
 					Col:     1,
 					Visited: map[string]int{"0,0": 1, "1,1": 1},
@@ -80,11 +80,14 @@ func TestRope_MoveHead(t *testing.T) {
 	}
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
-			rp := rope.NewRope()
+			rp, err := rope.NewRope()
+			if err != nil {
+				t.Fatal(err)
+			}
 			for _, mv := range tc.input {
 				rp.MoveHead(mv.numRows, mv.numCols)
 			}
-			got := rp
+			got := rp.Knots
 			if !cmp.Equal(tc.want, got) {
 				t.Error(cmp.Diff(tc.want, got))
 			}
@@ -95,14 +98,11 @@ func TestRope_MoveHead(t *testing.T) {
 func TestRope_UpdateTail(t *testing.T) {
 	t.Parallel()
 	testCases := map[string]struct {
-		input *rope.Rope
+		input []*rope.RopeEnd
 		want  *rope.RopeEnd
 	}{
 		"Head and tail in same location does not move tail": {
-			input: &rope.Rope{
-				Head: rope.NewRopeEnd(0, 0),
-				Tail: rope.NewRopeEnd(0, 0),
-			},
+			input: []*rope.RopeEnd{rope.NewRopeEnd(0, 0), rope.NewRopeEnd(0, 0)},
 			want: &rope.RopeEnd{
 				Row:     0,
 				Col:     0,
@@ -110,10 +110,7 @@ func TestRope_UpdateTail(t *testing.T) {
 			},
 		},
 		"Head and tail in same row and 1 column apart does not move tail": {
-			input: &rope.Rope{
-				Head: rope.NewRopeEnd(0, 0),
-				Tail: rope.NewRopeEnd(0, 1),
-			},
+			input: []*rope.RopeEnd{rope.NewRopeEnd(0, 0), rope.NewRopeEnd(0, 1)},
 			want: &rope.RopeEnd{
 				Row:     0,
 				Col:     1,
@@ -121,10 +118,7 @@ func TestRope_UpdateTail(t *testing.T) {
 			},
 		},
 		"Head and tail in same column and 1 row apart does not move tail": {
-			input: &rope.Rope{
-				Head: rope.NewRopeEnd(0, 1),
-				Tail: rope.NewRopeEnd(0, 2),
-			},
+			input: []*rope.RopeEnd{rope.NewRopeEnd(0, 1), rope.NewRopeEnd(0, 2)},
 			want: &rope.RopeEnd{
 				Row:     0,
 				Col:     2,
@@ -132,10 +126,7 @@ func TestRope_UpdateTail(t *testing.T) {
 			},
 		},
 		"Head and tail touching on single corner does not move tail": {
-			input: &rope.Rope{
-				Head: rope.NewRopeEnd(0, 0),
-				Tail: rope.NewRopeEnd(1, 1),
-			},
+			input: []*rope.RopeEnd{rope.NewRopeEnd(0, 0), rope.NewRopeEnd(1, 1)},
 			want: &rope.RopeEnd{
 				Row:     1,
 				Col:     1,
@@ -143,10 +134,7 @@ func TestRope_UpdateTail(t *testing.T) {
 			},
 		},
 		"Head west of tail on same row and more than 1 column apart moves tail towards head": {
-			input: &rope.Rope{
-				Head: rope.NewRopeEnd(0, -2),
-				Tail: rope.NewRopeEnd(0, 0),
-			},
+			input: []*rope.RopeEnd{rope.NewRopeEnd(0, -2), rope.NewRopeEnd(0, 0)},
 			want: &rope.RopeEnd{
 				Row:     0,
 				Col:     -1,
@@ -154,10 +142,7 @@ func TestRope_UpdateTail(t *testing.T) {
 			},
 		},
 		"Head east of tail on same row and more than 1 column apart moves tail towards head": {
-			input: &rope.Rope{
-				Head: rope.NewRopeEnd(0, 2),
-				Tail: rope.NewRopeEnd(0, 0),
-			},
+			input: []*rope.RopeEnd{rope.NewRopeEnd(0, 2), rope.NewRopeEnd(0, 0)},
 			want: &rope.RopeEnd{
 				Row:     0,
 				Col:     1,
@@ -165,10 +150,7 @@ func TestRope_UpdateTail(t *testing.T) {
 			},
 		},
 		"Head north of tail on same column and more than 1 row apart moves tail towards head": {
-			input: &rope.Rope{
-				Head: rope.NewRopeEnd(0, 0),
-				Tail: rope.NewRopeEnd(-2, 0),
-			},
+			input: []*rope.RopeEnd{rope.NewRopeEnd(0, 0), rope.NewRopeEnd(-2, 0)},
 			want: &rope.RopeEnd{
 				Row:     -1,
 				Col:     0,
@@ -176,10 +158,7 @@ func TestRope_UpdateTail(t *testing.T) {
 			},
 		},
 		"Head south of tail on same column and more than 1 row apart moves tail towards head": {
-			input: &rope.Rope{
-				Head: rope.NewRopeEnd(1, 1),
-				Tail: rope.NewRopeEnd(3, 1),
-			},
+			input: []*rope.RopeEnd{rope.NewRopeEnd(1, 1), rope.NewRopeEnd(3, 1)},
 			want: &rope.RopeEnd{
 				Row:     2,
 				Col:     1,
@@ -187,10 +166,7 @@ func TestRope_UpdateTail(t *testing.T) {
 			},
 		},
 		"Head northwest of tail and more than 1 column apart moves tail diagonally towards head": {
-			input: &rope.Rope{
-				Head: rope.NewRopeEnd(1, 0),
-				Tail: rope.NewRopeEnd(0, 2),
-			},
+			input: []*rope.RopeEnd{rope.NewRopeEnd(1, 0), rope.NewRopeEnd(0, 2)},
 			want: &rope.RopeEnd{
 				Row:     1,
 				Col:     1,
@@ -198,10 +174,7 @@ func TestRope_UpdateTail(t *testing.T) {
 			},
 		},
 		"Head northeast of tail and more than 1 column apart moves tail diagonally towards head": {
-			input: &rope.Rope{
-				Head: rope.NewRopeEnd(1, 2),
-				Tail: rope.NewRopeEnd(0, 0),
-			},
+			input: []*rope.RopeEnd{rope.NewRopeEnd(1, 2), rope.NewRopeEnd(0, 0)},
 			want: &rope.RopeEnd{
 				Row:     1,
 				Col:     1,
@@ -209,10 +182,7 @@ func TestRope_UpdateTail(t *testing.T) {
 			},
 		},
 		"Head southeast of tail and more than 1 column apart moves tail diagonally towards head": {
-			input: &rope.Rope{
-				Head: rope.NewRopeEnd(0, 2),
-				Tail: rope.NewRopeEnd(1, 0),
-			},
+			input: []*rope.RopeEnd{rope.NewRopeEnd(0, 2), rope.NewRopeEnd(1, 0)},
 			want: &rope.RopeEnd{
 				Row:     0,
 				Col:     1,
@@ -220,10 +190,7 @@ func TestRope_UpdateTail(t *testing.T) {
 			},
 		},
 		"Head southwest of tail and more than 1 column apart moves tail diagonally towards head": {
-			input: &rope.Rope{
-				Head: rope.NewRopeEnd(0, 0),
-				Tail: rope.NewRopeEnd(1, 2),
-			},
+			input: []*rope.RopeEnd{rope.NewRopeEnd(0, 0), rope.NewRopeEnd(1, 2)},
 			want: &rope.RopeEnd{
 				Row:     0,
 				Col:     1,
@@ -231,10 +198,7 @@ func TestRope_UpdateTail(t *testing.T) {
 			},
 		},
 		"Head northwest of tail and more than 1 row apart moves tail diagonally towards head": {
-			input: &rope.Rope{
-				Head: rope.NewRopeEnd(2, 0),
-				Tail: rope.NewRopeEnd(0, 1),
-			},
+			input: []*rope.RopeEnd{rope.NewRopeEnd(2, 0), rope.NewRopeEnd(0, 1)},
 			want: &rope.RopeEnd{
 				Row:     1,
 				Col:     0,
@@ -242,10 +206,7 @@ func TestRope_UpdateTail(t *testing.T) {
 			},
 		},
 		"Head northeast of tail and more than 1 row apart moves tail diagonally towards head": {
-			input: &rope.Rope{
-				Head: rope.NewRopeEnd(2, 2),
-				Tail: rope.NewRopeEnd(0, 1),
-			},
+			input: []*rope.RopeEnd{rope.NewRopeEnd(2, 2), rope.NewRopeEnd(0, 1)},
 			want: &rope.RopeEnd{
 				Row:     1,
 				Col:     2,
@@ -253,10 +214,7 @@ func TestRope_UpdateTail(t *testing.T) {
 			},
 		},
 		"Head southwest of tail and more than 1 row apart moves tail diagonally towards head": {
-			input: &rope.Rope{
-				Head: rope.NewRopeEnd(0, 0),
-				Tail: rope.NewRopeEnd(2, 1),
-			},
+			input: []*rope.RopeEnd{rope.NewRopeEnd(0, 0), rope.NewRopeEnd(2, 1)},
 			want: &rope.RopeEnd{
 				Row:     1,
 				Col:     0,
@@ -266,8 +224,12 @@ func TestRope_UpdateTail(t *testing.T) {
 	}
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
-			tc.input.UpdateTail()
-			got := tc.input.Tail
+			rp, err := rope.RopeFromRopeEnds(tc.input...)
+			if err != nil {
+				t.Fatal(err)
+			}
+			rp.UpdateTail()
+			got := rp.Tail
 			if !cmp.Equal(tc.want, got) {
 				t.Error(cmp.Diff(tc.want, got))
 			}
