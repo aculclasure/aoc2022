@@ -1,14 +1,14 @@
-package stack_test
+package ds_test
 
 import (
 	"testing"
 
-	"github.com/aculclasure/aoc2022/stack"
+	"github.com/aculclasure/aoc2022/ds"
 )
 
 func TestPopFromEmptyStackReturnsFalse(t *testing.T) {
 	t.Parallel()
-	var stk stack.Stack[int]
+	var stk ds.Stack[int]
 	_, got := stk.Pop()
 	want := false
 	if want != got {
@@ -18,7 +18,7 @@ func TestPopFromEmptyStackReturnsFalse(t *testing.T) {
 
 func TestPopFromNonEmptyStackReturnsTopItem(t *testing.T) {
 	t.Parallel()
-	var stk stack.Stack[int]
+	var stk ds.Stack[int]
 	stk.Push(1)
 	stk.Push(2)
 	got, ok := stk.Pop()
@@ -33,7 +33,7 @@ func TestPopFromNonEmptyStackReturnsTopItem(t *testing.T) {
 
 func TestSizeOfEmptyStackReturnsExpectedSize(t *testing.T) {
 	t.Parallel()
-	var stk stack.Stack[string]
+	var stk ds.Stack[string]
 	got := stk.Size()
 	want := 0
 	if want != got {
@@ -43,7 +43,7 @@ func TestSizeOfEmptyStackReturnsExpectedSize(t *testing.T) {
 
 func TestSizeOfNonEmptyStackReturnsExpectedSize(t *testing.T) {
 	t.Parallel()
-	var stk stack.Stack[string]
+	var stk ds.Stack[string]
 	stk.Push("a")
 	stk.Push("b")
 	stk.Push("c")
@@ -56,7 +56,7 @@ func TestSizeOfNonEmptyStackReturnsExpectedSize(t *testing.T) {
 
 func TestSizeChangesAfterItemsPushedOntoStack(t *testing.T) {
 	t.Parallel()
-	var stk stack.Stack[bool]
+	var stk ds.Stack[bool]
 	initSize := stk.Size()
 	stk.Push(true)
 	finalSize := stk.Size()
@@ -69,7 +69,7 @@ func TestSizeChangesAfterItemsPushedOntoStack(t *testing.T) {
 
 func TestSizeChangesAfterItemsPoppedFromStack(t *testing.T) {
 	t.Parallel()
-	var stk stack.Stack[int]
+	var stk ds.Stack[int]
 	for i := 0; i < 4; i++ {
 		stk.Push(i)
 	}
@@ -90,7 +90,7 @@ func TestSizeChangesAfterItemsPoppedFromStack(t *testing.T) {
 
 func TestPeekFromEmptyStackReturnsFalse(t *testing.T) {
 	t.Parallel()
-	var stk stack.Stack[int]
+	var stk ds.Stack[int]
 	_, got := stk.Peek()
 	want := false
 	if want != got {
@@ -100,7 +100,7 @@ func TestPeekFromEmptyStackReturnsFalse(t *testing.T) {
 
 func TestPeekFromNonEmptyStackReturnsTopItem(t *testing.T) {
 	t.Parallel()
-	var stk stack.Stack[int]
+	var stk ds.Stack[int]
 	stk.Push(1)
 	stk.Push(2)
 	got, ok := stk.Peek()
@@ -115,7 +115,7 @@ func TestPeekFromNonEmptyStackReturnsTopItem(t *testing.T) {
 
 func TestPeekFromNonEmptyStackDoesNotChangeStackSize(t *testing.T) {
 	t.Parallel()
-	var stk stack.Stack[int]
+	var stk ds.Stack[int]
 	stk.Push(1)
 	initSize := stk.Size()
 	_, ok := stk.Peek()

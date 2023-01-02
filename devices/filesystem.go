@@ -12,7 +12,6 @@ import (
 	"strings"
 
 	"github.com/aculclasure/aoc2022/ds"
-	"github.com/aculclasure/aoc2022/stack"
 )
 
 // fileInfoRgx defines what a file information line looks like.
@@ -35,7 +34,7 @@ type File struct {
 // TotalSize returns the sum of the size of this directory and the sizes of
 // all its subdirectories.
 func (d *Directory) TotalSize() int {
-	var stk stack.Stack[*Directory]
+	var stk ds.Stack[*Directory]
 	stk.Push(d)
 	sum := 0
 	for stk.Size() > 0 {
@@ -72,7 +71,7 @@ func (d *Directory) AllDescendants() []*Directory {
 	}
 
 	var (
-		stk         stack.Stack[*Directory]
+		stk         ds.Stack[*Directory]
 		descendants []*Directory
 	)
 	for _, v := range d.Children {
@@ -128,7 +127,7 @@ func TreeFromTerminalOutput(terminal io.Reader) (*Directory, error) {
 	}
 
 	var (
-		stk  stack.Stack[*Directory]
+		stk  ds.Stack[*Directory]
 		line string
 	)
 	rootDir := &Directory{Name: "/"}

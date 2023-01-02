@@ -1,5 +1,4 @@
-// Package stack implements a generic stack data structure.
-package stack
+package ds
 
 // Stack represents a generic stack data structure.
 type Stack[T any] struct {
