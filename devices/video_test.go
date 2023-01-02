@@ -10,6 +10,126 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
+func TestCrtScreen_WritePixel(t *testing.T) {
+	t.Parallel()
+	const (
+		numRows = 2
+		numCols = 4
+	)
+	testCases := map[string]struct {
+		inputCpuCycle int
+		inputPixelVal string
+		want          *devices.CrtScreen
+	}{
+		"Writing a pixel at CPU cycle smaller than number of matrix columns writes pixel at expected location": {
+			inputCpuCycle: 1,
+			inputPixelVal: "#",
+			want: &devices.CrtScreen{
+				[]string{"#", "", "", ""},
+				[]string{"", "", "", ""},
+			},
+		},
+		"Writing a pixel at CPU cycle equal to number of matrix columns writes pixel at expected location": {
+			inputCpuCycle: numCols,
+			inputPixelVal: "#",
+			want: &devices.CrtScreen{
+				[]string{"", "", "", "#"},
+				[]string{"", "", "", ""},
+			},
+		},
+		"Writing a pixel at CPU cycle greater than number of matrix columns writes pixel at expected location": {
+			inputCpuCycle: 7,
+			inputPixelVal: "#",
+			want: &devices.CrtScreen{
+				[]string{"", "", "", ""},
+				[]string{"", "", "#", ""},
+			},
+		},
+	}
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			got, err := devices.NewCrtScreen(numRows, numCols)
+			if err != nil {
+				t.Fatal(err)
+			}
+			err = got.WritePixel(tc.inputCpuCycle, tc.inputPixelVal)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !cmp.Equal(tc.want, got) {
+				t.Error(cmp.Diff(tc.want, got))
+			}
+		})
+	}
+}
+
+func TestCrtScreen_WritePixelErrorCases(t *testing.T) {
+	t.Parallel()
+	testCases := map[string]struct {
+		inputScreen   *devices.CrtScreen
+		inputCpuCycle int
+	}{
+		"writing to a nil CRT screen returns error": {
+			inputScreen: nil,
+		},
+		"writing to an out of bounds location on the CRT screen returns error": {
+			inputScreen: &devices.CrtScreen{
+				[]string{"", ""},
+				[]string{"", ""},
+			},
+			inputCpuCycle: 100,
+		},
+		"writing to an empty CRT screen returns error": {
+			inputScreen: &devices.CrtScreen{},
+		},
+	}
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			err := tc.inputScreen.WritePixel(tc.inputCpuCycle, "#")
+			if err == nil {
+				t.Error("expected an error but did not get one")
+			}
+		})
+	}
+}
+
+func TestCrtScreen_OutputGivenAValidCrtScreenReturnsExpectedOutput(t *testing.T) {
+	t.Parallel()
+	screen := &devices.CrtScreen{
+		[]string{".", ".", ".", "#"},
+		[]string{"#", "#", ".", "#"},
+	}
+	want := `...#
+##.#`
+	got := screen.Output()
+	if want != got {
+		t.Errorf("want %s, got %s", want, got)
+	}
+}
+
+func TestDrawOnScreenWithValidInstructionsReturnsExpectedScreenOutput(t *testing.T) {
+	t.Parallel()
+	f, err := os.Open("testdata/valid-video-cpu-instructions.txt")
+	if err != nil {
+		t.Fatal(err)
+
+	}
+	defer f.Close()
+	want := `##..##..##..##..##..##..##..##..##..##..
+###...###...###...###...###...###...###.
+####....####....####....####....####....
+#####.....#####.....#####.....#####.....
+######......######......######......####
+#######.......#######.......#######.....`
+	got, err := devices.DrawOnScreen(f)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want != got {
+		t.Error(cmp.Diff(want, got))
+	}
+}
+
 func TestSignalStrengthsWithValidInstructionsReturnsExpectedSignalStrengthSlice(t *testing.T) {
 	t.Parallel()
 	f, err := os.Open("testdata/valid-video-cpu-instructions.txt")

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"os"
 
@@ -23,4 +24,11 @@ func main() {
 		sum += s
 	}
 	fmt.Printf("Part 1: The sum of signal strengths is %d\n", sum)
+	f.Seek(0, io.SeekStart)
+	output, err := devices.DrawOnScreen(f)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println("Part 2: Output")
+	fmt.Println(output)
 }
