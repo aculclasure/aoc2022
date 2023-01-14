@@ -31,8 +31,26 @@ func (q *Queue[T]) Size() int {
 	return len(q.vals)
 }
 
+// PeekItems returns a slice of all items contained in the queue without
+// removing these items from the queue.
+func (q *Queue[T]) PeekAllItems() []T {
+	q.mtx.Lock()
+	defer q.mtx.Unlock()
+	var items []T
+	items = append(items, q.vals...)
+	return items
+}
+
 func NewQueue[T any]() *Queue[T] {
 	return &Queue[T]{
 		mtx: new(sync.Mutex),
 	}
+}
+
+func NewQueueFromItems[T any](items ...T) *Queue[T] {
+	q := NewQueue[T]()
+	for _, v := range items {
+		q.Enqueue(v)
+	}
+	return q
 }
