@@ -273,105 +273,175 @@ func TestMonkeysFromInputErrorCases(t *testing.T) {
 
 func TestRunWithValidMonkeysInputUpdatesMonkeyItemsAsExpected(t *testing.T) {
 	t.Parallel()
-	input := getTestMonkeys()
 	numRounds := 1
-	err := mitm.Run(input, numRounds)
-	if err != nil {
-		t.Fatal(err)
+	testCases := map[string]struct {
+		input    []*mitm.Monkey
+		adjuster mitm.WorryLevelAdjuster
+		want     [][]int
+	}{
+		"Worry level divisor of 3 returns expected items after 1 round": {
+			input:    getTestMonkeys(),
+			adjuster: mitm.AdjustWorryLevelPart1{Divisor: 3},
+			want: [][]int{
+				{20, 23, 27, 26},
+				{2080, 25, 167, 207, 401, 1046},
+				nil,
+				nil,
+			},
+		},
+		"No worry level reduction effect returns expected items after 1 round": {
+			input:    getTestMonkeys(),
+			adjuster: mitm.AdjustWorryLevelPart2{CommonMultiple: mitm.CommonMultiple(getTestMonkeys())},
+			want: [][]int{
+				{60, 71, 81, 80},
+				{77, 1504, 1865, 6244, 3603, 9412},
+				nil,
+				nil,
+			},
+		},
 	}
-	want := [][]int{
-		{20, 23, 27, 26},
-		{2080, 25, 167, 207, 401, 1046},
-		nil,
-		nil,
-	}
-	var got [][]int
-	for _, mk := range input {
-		got = append(got, mk.Items.PeekAllItems())
-	}
-	if !cmp.Equal(want, got) {
-		t.Error(cmp.Diff(want, got))
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			err := mitm.Run(tc.input, numRounds, tc.adjuster)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var got [][]int
+			for _, mk := range tc.input {
+				got = append(got, mk.Items.PeekAllItems())
+			}
+			if !cmp.Equal(tc.want, got) {
+				t.Error(cmp.Diff(tc.want, got))
+			}
+		})
 	}
 }
 
 func TestRunWithValidMonkeysInputSetsNumItemsInspectedFieldAsExpected(t *testing.T) {
 	t.Parallel()
-	input := getTestMonkeys()
 	numRounds := 1
-	err := mitm.Run(input, numRounds)
-	if err != nil {
-		t.Fatal(err)
+	testCases := map[string]struct {
+		input    []*mitm.Monkey
+		adjuster mitm.WorryLevelAdjuster
+		want     []int
+	}{
+		"Worry level divisor of 3 sets number of items inspected for each monkey to expected values after 1 round": {
+			input:    getTestMonkeys(),
+			adjuster: mitm.AdjustWorryLevelPart1{Divisor: 3},
+			want:     []int{2, 4, 3, 5},
+		},
+		"No worry level reduction effect sets number of items inspected for each monkey to expected values after 1 round": {
+			input:    getTestMonkeys(),
+			adjuster: mitm.AdjustWorryLevelPart2{CommonMultiple: mitm.CommonMultiple(getTestMonkeys())},
+			want:     []int{2, 4, 3, 6},
+		},
 	}
-	want := []int{2, 4, 3, 5}
-	var got []int
-	for _, mk := range input {
-		got = append(got, mk.NumItemsInspected)
-	}
-	if !cmp.Equal(want, got) {
-		t.Error(cmp.Diff(want, got))
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			err := mitm.Run(tc.input, numRounds, tc.adjuster)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var got []int
+			for _, mk := range tc.input {
+				got = append(got, mk.NumItemsInspected)
+			}
+			if !cmp.Equal(tc.want, got) {
+				t.Error(cmp.Diff(tc.want, got))
+			}
+		})
 	}
 }
 
 func TestMonkeyBusinessWithValidMonkeysInputReturnsExpectedValue(t *testing.T) {
 	t.Parallel()
-	input := getTestMonkeys()
-	numRounds := 20
-	err := mitm.Run(input, numRounds)
-	if err != nil {
-		t.Fatal(err)
+	testCases := map[string]struct {
+		input     []*mitm.Monkey
+		numRounds int
+		adjuster  mitm.WorryLevelAdjuster
+		want      int
+	}{
+		"Running 20 rounds with worry level reduction divisor of 3 returns expected value": {
+			input:     getTestMonkeys(),
+			numRounds: 20,
+			adjuster:  mitm.AdjustWorryLevelPart1{Divisor: 3},
+			want:      10605,
+		},
+		"Running 10000 rounds with no worry level reduction returns expected value": {
+			input:     getTestMonkeys(),
+			numRounds: 10000,
+			adjuster:  mitm.AdjustWorryLevelPart2{CommonMultiple: mitm.CommonMultiple(getTestMonkeys())},
+			want:      2713310158,
+		},
 	}
-	want := 10605
-	got := mitm.MonkeyBusiness(input)
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			err := mitm.Run(tc.input, tc.numRounds, tc.adjuster)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, mk := range tc.input {
+				t.Logf("Monkey %d inspected %d items after %d rounds\n", mk.ID, mk.NumItemsInspected, tc.numRounds)
+			}
+			got := mitm.MonkeyBusiness(tc.input)
+			if tc.want != got {
+				t.Errorf("want %d, got %d", tc.want, got)
+			}
+		})
+	}
+}
+
+func TestCommonMultipleWithValidInputReturnsExpectedValue(t *testing.T) {
+	t.Parallel()
+	monkeys := getTestMonkeys()
+	want := 96577
+	got := mitm.CommonMultiple(monkeys)
 	if want != got {
 		t.Errorf("want %d, got %d", want, got)
 	}
 }
 
 func getTestMonkeys() []*mitm.Monkey {
-	var monkeys []*mitm.Monkey
-	startingItems := ds.NewQueueFromItems(79, 98)
-	monkeys = append(monkeys, &mitm.Monkey{
-		ID:    0,
-		Items: startingItems,
-		WorryCalc: func(old int) int {
-			return old * 19
+	return []*mitm.Monkey{
+		{
+			ID:    0,
+			Items: ds.NewQueueFromItems(79, 98),
+			WorryCalc: func(old int) int {
+				return old * 19
+			},
+			TestDivisor: 23,
+			DestIfTrue:  2,
+			DestIfFalse: 3,
 		},
-		TestDivisor: 23,
-		DestIfTrue:  2,
-		DestIfFalse: 3,
-	})
-	startingItems = ds.NewQueueFromItems(54, 65, 75, 74)
-	monkeys = append(monkeys, &mitm.Monkey{
-		ID:    1,
-		Items: startingItems,
-		WorryCalc: func(old int) int {
-			return old + 6
+		{
+			ID:    1,
+			Items: ds.NewQueueFromItems(54, 65, 75, 74),
+			WorryCalc: func(old int) int {
+				return old + 6
+			},
+			TestDivisor: 19,
+			DestIfTrue:  2,
+			DestIfFalse: 0,
 		},
-		TestDivisor: 19,
-		DestIfTrue:  2,
-		DestIfFalse: 0,
-	})
-	startingItems = ds.NewQueueFromItems(79, 60, 97)
-	monkeys = append(monkeys, &mitm.Monkey{
-		ID:    2,
-		Items: startingItems,
-		WorryCalc: func(old int) int {
-			return old * old
+		{
+			ID:    2,
+			Items: ds.NewQueueFromItems(79, 60, 97),
+			WorryCalc: func(old int) int {
+				return old * old
+			},
+			TestDivisor: 13,
+			DestIfTrue:  1,
+			DestIfFalse: 3,
 		},
-		TestDivisor: 13,
-		DestIfTrue:  1,
-		DestIfFalse: 3,
-	})
-	startingItems = ds.NewQueueFromItems(74)
-	monkeys = append(monkeys, &mitm.Monkey{
-		ID:    3,
-		Items: startingItems,
-		WorryCalc: func(old int) int {
-			return old + 3
+		{
+			ID:    3,
+			Items: ds.NewQueueFromItems(74),
+			WorryCalc: func(old int) int {
+				return old + 3
+			},
+			TestDivisor: 17,
+			DestIfTrue:  0,
+			DestIfFalse: 1,
 		},
-		TestDivisor: 17,
-		DestIfTrue:  0,
-		DestIfFalse: 1,
-	})
-	return monkeys
+	}
 }

@@ -28,6 +28,31 @@ type Monkey struct {
 	NumItemsInspected int
 }
 
+// AdjustWorryLevelPart1 provides a type with the Adjust behavior needed for
+// solving part one of the problem.
+type AdjustWorryLevelPart1 struct {
+	Divisor int
+}
+
+// Adjust accepts a worry level as an int and returns the result of dividing the
+// worry level by 3.
+func (a AdjustWorryLevelPart1) Adjust(oldWorryLevel int) int {
+	return oldWorryLevel / a.Divisor
+}
+
+// AdjustWorryLevelPart2 provides a type with the Adjust behavior needed for
+// solving part two of the problem where there is no post-inspection reduction
+// of worry levels.
+type AdjustWorryLevelPart2 struct {
+	CommonMultiple int
+}
+
+// Adjust accepts a worry level as an int and returns the modulus of the worry
+// level with the common multiple field in the AdjustWorryLevelPart2 receiver.
+func (a AdjustWorryLevelPart2) Adjust(oldWorryLevel int) int {
+	return oldWorryLevel % a.CommonMultiple
+}
+
 // MonkeysFromInput accepts an io.Reader pointing to line-separated Monkey
 // attribute data and returns a slice of Monkey structs built from those
 // attributes. An error is returned if the input cannot be processed or if there
@@ -61,24 +86,34 @@ func MonkeysFromInput(input io.Reader) ([]*Monkey, error) {
 	return monkeys, nil
 }
 
+// WorryLevelAdjuster provides an interface for the post-inspection worry level
+// adjustment behavior. For part one of the problem, the worry level is adjusted
+// by dividing it by 3. For part two of the problem, the worry level is adjusted
+// by using a modulus.
+type WorryLevelAdjuster interface {
+	Adjust(int) int
+}
+
 // Run accepts a slice of Monkey structs and an number of rounds to execute and
 // runs the monkey-in-the-middle game for the specified number of rounds. An
 // error is returned if invalid arguments are provided to the function or if a
 // monkey attempts to throw one of it's items to an invalid destination monkey.
-func Run(monkeys []*Monkey, numRounds int) error {
+func Run(monkeys []*Monkey, numRounds int, adjuster WorryLevelAdjuster) error {
 	if monkeys == nil {
 		return errors.New("monkeys argument must be non-nil")
 	}
 	if numRounds < 1 {
 		return fmt.Errorf("number of rounds must be at least 1, got %d", numRounds)
 	}
-	const boredomVal = 3
+	if adjuster == nil {
+		return errors.New("must provide a non-nil worry level adjuster argument")
+	}
 	for i := 0; i < numRounds; i++ {
 		for _, mk := range monkeys {
 			for mk.Items.Size() > 0 {
 				worryLevel, _ := mk.Items.Dequeue()
 				mk.NumItemsInspected++
-				worryLevel = mk.WorryCalc(worryLevel) / boredomVal
+				worryLevel = adjuster.Adjust(mk.WorryCalc(worryLevel))
 				testPassed := (worryLevel % mk.TestDivisor) == 0
 				destMonkey := mk.DestIfTrue
 				if !testPassed {
@@ -111,6 +146,20 @@ func MonkeyBusiness(monkeys []*Monkey) int {
 		return copy[i].NumItemsInspected < copy[j].NumItemsInspected
 	})
 	return copy[len(copy)-1].NumItemsInspected * copy[len(copy)-2].NumItemsInspected
+}
+
+// CommonMultiple accepts a slice of Monkey structs and returns the common
+// multiple of all the TestDivisor fields in each monkey. 0 is returned if a nil
+// slice of Monkeys is given.
+func CommonMultiple(monkeys []*Monkey) int {
+	if monkeys == nil {
+		return 0
+	}
+	multiple := 1
+	for _, m := range monkeys {
+		multiple *= m.TestDivisor
+	}
+	return multiple
 }
 
 // parseMonkey accepts a monkey indicator line (e.g. "Monkey 0") and a Scanner
